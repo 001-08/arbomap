@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Arbomap</title>
+
+<!-- ===== ESTILOS GLOBAIS ===== -->
+<style>
+  /* ---------- Reset & Base ---------- */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --metal-1: #9ca3af;
+    --metal-2: #e5e7eb;
+    --metal-3: #6b7280;
+    --metal-grad: linear-gradient(135deg, #9ca3af 0%, #f3f4f6 40%, #9ca3af 60%, #6b7280 100%);
+    --green-forest: #166534;
+    --green-mid:    #15803d;
+    --green-light:  #22c55e;
+    --green-bg:     #f0fdf4;
+    --green-border: #bbf7d0;
+    --accent:       #16a34a;
+    --danger:       #dc2626;
+    --warn:         #d97706;
+    --info:         #2563eb;
+    --white:        #ffffff;
+    --gray-50:      #f9fafb;
+    --gray-100:     #f3f4f6;
+    --gray-200:     #e5e7eb;
+    --gray-300:     #d1d5db;
+    --gray-500:     #6b7280;
+    --gray-700:     #374151;
+    --gray-900:     #111827;
+    --radius-sm: 8px;
+    --radius:    12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.10), 0 1px 2px rgba(0,0,0,.06);
+    --shadow:    0 4px 12px rgba(0,0,0,.10);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,.15);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #f8f9fa;
+    color: var(--gray-900);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ---------- App Shell ---------- */
+  #app {
+    width: 100%;
+    max-width: 480px;
+    height: 100dvh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* ---------- Status bar ---------- */
+  #status-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 6px 14px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.online  { background: var(--green-light); }
+  .status-dot.offline { background: var(--danger); }
+  .status-dot.sync    { background: var(--warn); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    animation: fadeIn .2s ease;
+  }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ---------- Top bar ---------- */
+  .top-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .top-bar h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--gray-900);
+    flex: 1;
+  }
+  .btn-back {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-100);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* ---------- Scroll body ---------- */
+  .scroll-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all .15s ease;
+    width: 100%;
+    letter-spacing: .01em;
+    text-decoration: none;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--green-mid); color: var(--white); }
+  .btn-primary:hover { background: var(--green-forest); }
+  .btn-secondary { background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-200); }
+  .btn-danger { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+  .btn-info   { background: #eff6ff; color: var(--info); border: 1px solid #bfdbfe; }
+  .btn-warn   { background: #fffbeb; color: var(--warn); border: 1px solid #fde68a; }
+  .btn-sm {
+    padding: 8px 14px;
+    font-size: 13px;
+    width: auto;
+    border-radius: var(--radius-sm);
+  }
+  .btn-icon {
+    padding: 10px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    font-size: 18px;
+  }
+
+  /* ---------- Logo ---------- */
+  .logo-arbomap {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  .logo-arbo {
+    background: var(--metal-grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-style: italic;
+  }
+  .logo-map {
+    color: var(--green-forest);
+  }
+  .logo-sub {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ---------- Form fields ---------- */
+  .field-group { margin-bottom: 14px; }
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 5px;
+  }
+  .field-label .req { color: var(--danger); }
+  input[type="text"], input[type="number"], input[type="date"], input[type="time"],
+  select, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    color: var(--gray-900);
+    background: var(--white);
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color .15s;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--green-mid);
+    box-shadow: 0 0 0 3px rgba(34,197,94,.15);
+  }
+  input[readonly] { background: var(--gray-50); color: var(--gray-500); }
+  textarea { resize: vertical; min-height: 70px; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-700);
+  }
+
+  /* ---------- Table ---------- */
+  .tbl-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--gray-50); }
+  th { padding: 10px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gray-500); border-bottom: 1px solid var(--gray-200); white-space: nowrap; }
+  td { padding: 10px 10px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--green-bg); }
+
+  /* ---------- Tag / badge ---------- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-green  { background: var(--green-bg); color: var(--green-forest); }
+  .badge-gray   { background: var(--gray-100); color: var(--gray-500); }
+  .badge-blue   { background: #eff6ff; color: var(--info); }
+
+  /* ---------- Segment / toggle ---------- */
+  .segment {
+    display: flex;
+    gap: 0;
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    margin-bottom: 14px;
+  }
+  .segment-btn {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    color: var(--gray-500);
+  }
+  .segment-btn.active {
+    background: var(--white);
+    color: var(--green-forest);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ---------- Section title ---------- */
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--green-forest);
+    border-left: 3px solid var(--green-light);
+    padding-left: 8px;
+    margin: 18px 0 12px;
+  }
+
+  /* ---------- Photo grid ---------- */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .photo-thumb {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    border: 2px solid var(--gray-200);
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-del {
+    position: absolute; top: 2px; right: 2px;
+    background: rgba(220,38,38,.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- Instrument selector ---------- */
+  .instr-group {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .instr-btn {
+    flex: 1; min-width: 80px;
+    padding: 10px 8px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    transition: all .15s;
+    color: var(--gray-700);
+  }
+  .instr-btn.selected {
+    border-color: var(--green-mid);
+    background: var(--green-bg);
+    color: var(--green-forest);
+  }
+
+  /* ---------- DAP cols ---------- */
+  .dap-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ---------- Modals ---------- */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: 24px 24px 0 0;
+    padding: 20px 20px 36px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--gray-300);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .modal-title {
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--gray-900);
+  }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--gray-900); color: var(--white);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 14px; font-weight: 600;
+    z-index: 999; opacity: 0; transition: opacity .3s;
+    pointer-events: none; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ---------- Empty state ---------- */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; color: var(--gray-700); }
+  .empty p  { font-size: 13px; }
+
+  /* ---------- Row actions ---------- */
+  .row-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+
+  /* ---------- Search bar ---------- */
+  .search-bar {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+  .search-bar input {
+    flex: 1; border: none; background: transparent; font-size: 15px; outline: none;
+    color: var(--gray-900);
+  }
+
+  /* ---------- Divider ---------- */
+  .divider { border: none; border-top: 1px solid var(--gray-200); margin: 16px 0; }
+
+  /* ---------- Checkbox ---------- */
+  .check-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--gray-100);
+    cursor: pointer;
+  }
+  .check-row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--green-mid); }
+
+  /* ---------- Floating btn ---------- */
+  .fab {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--green-mid);
+    color: white;
+    font-size: 24px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(21,128,61,.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+    transition: all .15s;
+  }
+  .fab:active { transform: scale(.93); }
+
+  /* ---------- Fenologia / código chips ---------- */
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .chip {
+    padding: 6px 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--white);
+    color: var(--gray-700);
+    transition: all .12s;
+  }
+  .chip.selected { border-color: var(--green-mid); background: var(--green-bg); color: var(--green-forest); }
+
+  /* ---------- Helpers ---------- */
+  .text-sm { font-size: 13px; }
+  .text-center { text-align: center; }
+  .gap-8 { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+
+  /* ---------- SCREEN 1: INICIAL ---------- */
+  #screen-home {
+    background: var(--white);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 40px 32px;
+    gap: 0;
+  }
+  .home-leaf {
+    font-size: 72px;
+    margin-bottom: 20px;
+    animation: floatLeaf 3s ease-in-out infinite;
+  }
+  @keyframes floatLeaf {
+    0%,100%{ transform: translateY(0) rotate(-5deg); }
+    50%    { transform: translateY(-8px) rotate(5deg); }
+  }
+  .home-tagline {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin: 6px 0 40px;
+    letter-spacing: .04em;
+  }
+  .btn-start {
+    background: var(--green-mid);
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 18px 40px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(21,128,61,.35);
+    transition: all .15s;
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 auto;
+  }
+  .btn-start:active { transform: scale(.96); }
+  .btn-info-circle {
+    position: absolute;
+    bottom: 28px; right: 28px;
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    border: 2px solid var(--gray-200);
+    cursor: pointer;
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    color: var(--gray-500);
+    transition: all .15s;
+  }
+  .btn-info-circle:hover { background: var(--gray-200); }
+
+  /* ---------- NEMAF info ---------- */
+  .nemaf-card {
+    background: var(--green-bg);
+    border: 1px solid var(--green-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    margin: 16px 0;
+  }
+  .nemaf-card p { font-size: 14px; line-height: 1.7; color: var(--gray-700); }
+  .nemaf-card a { color: var(--green-forest); font-weight: 700; }
+
+  /* ===== QR SCANNER ===== */
+  #qr-video { width: 100%; border-radius: var(--radius); background: #000; max-height: 240px; }
+  .qr-region {
+    border: 3px solid var(--green-light);
+    border-radius: var(--radius);
+    margin: 8px 0;
+    overflow: hidden;
+  }
+
+  /* ---------- Map placeholder ---------- */
+  .map-ph {
+    background: #e8f5e9;
+    border-radius: var(--radius);
+    height: 180px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--green-forest);
+    font-weight: 600;
+    border: 2px dashed var(--green-border);
+    cursor: pointer;
+  }
+  .map-ph span { font-size: 32px; }
+
+  /* ---------- Export options ---------- */
+  .export-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin: 16px 0;
+  }
+  .export-card {
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 20px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .15s;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--gray-700);
+  }
+  .export-card:hover, .export-card:active { border-color: var(--green-mid); background: var(--green-bg); color: var(--green-forest); }
+  .export-card .export-icon { font-size: 32px; display: block; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div id="app">
+
+  <!-- Status bar -->
+  <div id="status-bar">
+    <span class="status-dot" id="dot-online"></span>
+    <span id="status-text" style="color:var(--gray-500)">Verificando conexão…</span>
+  </div>
+
+  <!-- =========================================================
+       TELA 1 – INICIAL
+       ========================================================= -->
+  <div id="screen-home" class="screen active">
+    <div class="home-leaf">🌿</div>
+    <div class="logo-arbomap">
+      <span class="logo-arbo">Arbo</span><span class="logo-map">map</span>
+    </div>
+    <div class="logo-sub">Inventário Florestal de Campo</div>
+    <p class="home-tagline">NEMAF · ICA · UFMG</p>
+    <button class="btn-start" onclick="showScreen('screen-dashboard')">
+      ▶ INICIAR
+    </button>
+    <button class="btn-info-circle" onclick="showScreen('screen-info')" title="Informações">ℹ</button>
+  </div>
+
+  <!-- =========================================================
+       TELA DE INFORMAÇÃO
+       ========================================================= -->
+  <div id="screen-info" class="screen" style="justify-content:flex-start;">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-home')">←</button>
+      <h2>Informações</h2>
+    </div>
+    <div class="scroll-body">
+      <div style="text-align:center;padding:20px 0 10px;">
+        <div class="logo-arbomap" style="font-size:36px;">
+          <span class="logo-arbo">Arbo</span><span class="logo-map">map</span>
+        </div>
+      </div>
+      <div class="nemaf-card">
+        <p>🌳 O aplicativo foi desenvolvido pela equipe <strong>Arbomap</strong> do <strong>NEMAF</strong><br>
+        (Núcleo de Estudos em Manejo Florestal) da <strong>UFMG</strong>.</p>
+        <br>
+        <p>Qualquer dúvida, entre em contato pelo e-mail:</p>
+        <br>
+        <p><a href="mailto:Arbomap@gmail.com">Arbomap@gmail.com</a></p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px;">📖 Manual Rápido</div>
+        <p class="text-sm" style="line-height:1.7;color:var(--gray-700);">
+          <strong>1. Iniciar Coleta</strong> – Toque em "Nova Coleta" e escolha o tipo (Plantada ou Nativa).<br><br>
+          <strong>2. Localização</strong> – Toque em "Capturar Localização" para obter GPS automaticamente.<br><br>
+          <strong>3. Adicionar Árvores</strong> – Preencha os dados e toque em "Adicionar Árvore".<br><br>
+          <strong>4. Fotos</strong> – Use o ícone de câmera para vincular fotos a cada árvore.<br><br>
+          <strong>5. QR Code</strong> – Leia o QR Code da parcela para preenchimento automático.<br><br>
+          <strong>6. Exportar</strong> – No painel principal, toque em "Exportar Dados" para CSV/Excel/PDF.<br><br>
+          <strong>7. Offline</strong> – Todos os dados ficam salvos localmente mesmo sem internet.
+        </p>
+      </div>
+      <button class="btn btn-primary" onclick="showScreen('screen-home')">← Voltar</button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       TELA 2 – PAINEL PRINCIPAL (DASHBOARD)
+       ========================================================= -->
+  <div id="screen-dashboard" class="screen">
+    <div class="top-bar">
+      <div class="logo-arbomap" style="font-size:24px;">
+        <span class="logo-arbo">Arbo</span><span class="logo-map">map</span>
+      </div>
+    </div>
+    <div class="scroll-body">
+
+      <!-- Histórico -->
+      <div class="section-title">📋 Histórico de Coletas</div>
+      <div class="tbl-wrap" id="historico-wrap">
+        <table id="historico-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Responsável</th>
+              <th>Projeto</th>
+              <th>Talhão</th>
+              <th>Parcela</th>
+              <th>Árvores</th>
+            </tr>
+          </thead>
+          <tbody id="historico-body">
+            <!-- Populado por JS -->
+          </tbody>
+        </table>
+      </div>
+      <div id="historico-empty" class="empty" style="display:none;">
+        <div class="empty-icon">🌱</div>
+        <h3>Nenhuma coleta registrada</h3>
+        <p>Inicie uma nova coleta abaixo</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Ações -->
+      <div class="gap-8">
+        <button class="btn btn-primary" onclick="showScreen('screen-new-collection')">
+          🌳 Nova Coleta
+        </button>
+        <div class="row">
+          <button class="btn btn-info" onclick="showScreen('screen-consultar')">🔍 Consultar/Editar</button>
+          <button class="btn btn-danger" onclick="showScreen('screen-excluir')">🗑 Excluir Dados</button>
+        </div>
+        <div class="row">
+          <button class="btn btn-secondary" onclick="showScreen('screen-exportar')">📤 Exportar Dados</button>
+          <button class="btn btn-secondary" onclick="showScreen('screen-config')">⚙️ Configurações</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       TELA 3 – NOVA COLETA (seleção Plantada / Nativa)
+       ========================================================= -->
+  <div id="screen-new-collection" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-dashboard')">←</button>
+      <h2>Nova Coleta</h2>
+    </div>
+    <div class="scroll-body">
+      <div class="section-title">Tipo de Floresta</div>
+      <p class="text-sm" style="margin-bottom:16px;color:var(--gray-500);">Selecione o tipo de coleta para continuar:</p>
+      <div class="row">
+        <button class="btn btn-primary" style="flex-direction:column;padding:24px 10px;gap:8px;" onclick="startColeta('plantada')">
+          <span style="font-size:32px;">🌲</span>
+          <span>Plantada</span>
+        </button>
+        <button class="btn" style="flex-direction:column;padding:24px 10px;gap:8px;background:#f0fdf4;color:#166534;border:2px solid #bbf7d0;" onclick="startColeta('nativa')">
+          <span style="font-size:32px;">🌿</span>
+          <span>Nativa</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       TELA 3b – FORMULÁRIO DE COLETA
+       ========================================================= -->
+  <div id="screen-coleta-form" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-new-collection')">←</button>
+      <h2 id="form-title">Coleta – Plantada</h2>
+    </div>
+    <div class="scroll-body">
+
+      <!-- Informações Gerais -->
+      <div class="section-title">📌 Informações Gerais</div>
+      <div class="row">
+        <div class="field-group">
+          <label class="field-label">Data <span class="req">*</span></label>
+          <input type="date" id="f-data">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Hora</label>
+          <input type="time" id="f-hora">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Responsável Técnico <span class="req">*</span></label>
+        <input type="text" id="f-responsavel" placeholder="Nome completo">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Projeto <span class="req">*</span></label>
+        <input type="text" id="f-projeto" placeholder="Nome do projeto">
+      </div>
+      <div class="row">
+        <div class="field-group">
+          <label class="field-label">Talhão <span class="req">*</span></label>
+          <input type="text" id="f-talhao" placeholder="Ex: T-01">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Parcela <span class="req">*</span></label>
+          <input type="text" id="f-parcela" placeholder="Ex: P-01">
+        </div>
+      </div>
+
+      <!-- GPS -->
+      <div class="section-title">📍 Localização</div>
+      <div class="row">
+        <div class="field-group">
+          <label class="field-label">Latitude</label>
+          <input type="text" id="f-lat" placeholder="-19.000000" readonly>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Longitude</label>
+          <input type="text" id="f-lon" placeholder="-44.000000" readonly>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field-group">
+          <label class="field-label">Zona UTM</label>
+          <input type="text" id="f-utm" placeholder="Ex: 23K">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Localização</label>
+          <input type="text" id="f-local" placeholder="Será preenchida" readonly>
+        </div>
+      </div>
+      <button class="btn btn-info" onclick="captureGPS()" style="margin-bottom:14px;">
+        📡 Capturar Localização
+      </button>
+
+      <!-- QR Code -->
+      <div class="section-title">📷 QR Code da Parcela</div>
+      <button class="btn btn-secondary" onclick="openQR('parcela')" style="margin-bottom:14px;">
+        🔲 Ler QR Code da Parcela
+      </button>
+
+      <div class="divider"></div>
+
+      <!-- Instrumento -->
+      <div class="section-title">📏 Instrumento de Medição</div>
+      <div class="instr-group">
+        <button class="instr-btn selected" id="instr-suta"    onclick="selectInstr('suta')">🔩 Suta</button>
+        <button class="instr-btn"          id="instr-fita"    onclick="selectInstr('fita')">📏 Fita métrica</button>
+        <button class="instr-btn"          id="instr-outros"  onclick="selectInstr('outros')">🔧 Outros</button>
+      </div>
+
+      <!-- Dados da Árvore -->
+      <div class="section-title">🌳 Dados da Árvore</div>
+      <div class="row">
+        <div class="field-group">
+          <label class="field-label">Nº Árvore <span class="req">*</span></label>
+          <input type="number" id="f-num" placeholder="1" min="1">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Fuste</label>
+          <select id="f-fuste">
+            <option value="">— Selecionar —</option>
+            <option>1 – Reto</option>
+            <option>2 – Levemente tortuoso</option>
+            <option>3 – Tortuoso</option>
+            <option>4 – Muito tortuoso</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Espécie <span class="req">*</span></label>
+        <input type="text" id="f-especie" placeholder="Nome científico ou popular">
+      </div>
+
+      <!-- CAP / DAP dinâmico -->
+      <div id="instr-fields">
+        <!-- Suta (2 colunas) -->
+        <div id="fields-suta">
+          <div class="dap-cols">
+            <div class="field-group">
+              <label class="field-label">DAP₁ (cm) <span class="req">*</span></label>
+              <input type="number" id="f-dap1" step="0.1" placeholder="0.0" oninput="calcDAPSuta()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">DAP₂ (cm) <span class="req">*</span></label>
+              <input type="number" id="f-dap2" step="0.1" placeholder="0.0" oninput="calcDAPSuta()">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">DAP médio (cm)</label>
+            <input type="text" id="f-dap-suta-result" readonly placeholder="Calculado automaticamente">
+          </div>
+        </div>
+
+        <!-- Fita (CAP → DAP) -->
+        <div id="fields-fita" style="display:none;">
+          <div class="field-group">
+            <label class="field-label">CAP (cm) <span class="req">*</span></label>
+            <input type="number" id="f-cap" step="0.1" placeholder="0.0" oninput="calcDAP()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">DAP (cm) — calculado automaticamente</label>
+            <input type="text" id="f-dap-calc" readonly placeholder="DAP = CAP ÷ π">
+          </div>
+        </div>
+
+        <!-- Outros (DAP direto) -->
+        <div id="fields-outros" style="display:none;">
+          <div class="field-group">
+            <label class="field-label">DAP (cm) <span class="req">*</span></label>
+            <input type="number" id="f-dap-outros" step="0.1" placeholder="0.0">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field-group">
+          <label class="field-label">Altura Total – HT (m)</label>
+          <input type="number" id="f-ht" step="0.1" placeholder="0.0">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Altura Comercial – HC (m)</label>
+          <input type="number" id="f-hc" step="0.1" placeholder="0.0">
+        </div>
+      </div>
+
+      <!-- Código -->
+      <div class="section-title">🏷 Código</div>
+      <div class="chip-group" id="codigos-chips">
+        <!-- Populado por JS -->
+      </div>
+      <input type="hidden" id="f-codigo">
+
+      <!-- Fenologia (apenas Nativa) -->
+      <div id="fenologia-section" style="display:none;">
+        <div class="section-title">🌸 Fenologia</div>
+        <div class="chip-group" id="fenologia-chips">
+          <div class="chip" onclick="selectChip(this,'fenologia')">Vegetativo</div>
+          <div class="chip" onclick="selectChip(this,'fenologia')">Brotamento</div>
+          <div class="chip" onclick="selectChip(this,'fenologia')">Floração</div>
+          <div class="chip" onclick="selectChip(this,'fenologia')">Frutificação</div>
+          <div class="chip" onclick="selectChip(this,'fenologia')">Dispersão</div>
+          <div class="chip" onclick="selectChip(this,'fenologia')">Dormência</div>
+          <div class="chip" onclick="selectChip(this,'fenologia')">Queda foliar</div>
+        </div>
+        <input type="hidden" id="f-fenologia">
+      </div>
+
+      <!-- Observações -->
+      <div class="field-group">
+        <label class="field-label">Observações</label>
+        <textarea id="f-obs" placeholder="Anotações adicionais…"></textarea>
+      </div>
+
+      <!-- Fotos -->
+      <div class="section-title">📸 Registro Fotográfico</div>
+      <div class="photo-grid" id="photo-grid"></div>
+      <div class="row" style="margin-bottom:14px;">
+        <button class="btn btn-secondary btn-sm" onclick="openCamera()">📷 Câmera</button>
+        <button class="btn btn-secondary btn-sm" onclick="openGallery()">🖼 Galeria</button>
+        <button class="btn btn-secondary btn-sm" onclick="openQR('arvore')">🔲 QR Árvore</button>
+      </div>
+      <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+      <input type="file" id="camera-input"  accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+
+      <!-- Adicionar Árvore -->
+      <button class="btn btn-primary" onclick="adicionarArvore()" style="margin-top:8px;">
+        ➕ Adicionar Árvore
+      </button>
+
+      <!-- Lista de Árvores -->
+      <div class="section-title" style="margin-top:24px;">📊 Árvores na Parcela</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Espécie</th><th>CAP/DAP</th><th>HT</th><th>Ações</th></tr></thead>
+          <tbody id="arvores-body"></tbody>
+        </table>
+      </div>
+      <div id="arvores-empty" class="empty" style="display:none;padding:20px;">
+        <div class="empty-icon">🌱</div>
+        <p>Nenhuma árvore adicionada</p>
+      </div>
+
+      <div class="divider"></div>
+      <button class="btn btn-primary" onclick="salvarColeta()" style="margin-bottom:20px;">
+        💾 Salvar Coleta
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       TELA 4 – CONSULTAR DADOS
+       ========================================================= -->
+  <div id="screen-consultar" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-dashboard')">←</button>
+      <h2>Consultar Dados</h2>
+    </div>
+    <div class="scroll-body">
+      <div class="search-bar">
+        <span>🔍</span>
+        <input type="text" placeholder="Buscar por projeto, talhão, espécie…" id="search-input" oninput="renderConsulta()">
+      </div>
+      <!-- Filtros -->
+      <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+        <select id="filter-tipo" onchange="renderConsulta()" style="flex:1;min-width:120px;">
+          <option value="">Tipo</option>
+          <option value="plantada">Plantada</option>
+          <option value="nativa">Nativa</option>
+        </select>
+        <input type="date" id="filter-data" onchange="renderConsulta()" style="flex:1;min-width:120px;">
+      </div>
+      <div id="consulta-results"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       TELA 4b – DETALHE DA COLETA
+       ========================================================= -->
+  <div id="screen-detalhe" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-consultar')">←</button>
+      <h2>Detalhe da Coleta</h2>
+    </div>
+    <div class="scroll-body" id="detalhe-body"></div>
+  </div>
+
+  <!-- =========================================================
+       TELA 5 – EXCLUIR DADOS
+       ========================================================= -->
+  <div id="screen-excluir" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-dashboard')">←</button>
+      <h2>Excluir Dados</h2>
+    </div>
+    <div class="scroll-body">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px;">⚠️ Selecione o que deseja excluir</div>
+        <div class="gap-8">
+          <button class="btn btn-danger" onclick="excluirTudo()">🗑 Excluir TODOS os registros</button>
+        </div>
+      </div>
+      <div class="section-title">Excluir coleta específica</div>
+      <div id="excluir-lista"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       TELA – EXPORTAR DADOS
+       ========================================================= -->
+  <div id="screen-exportar" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-dashboard')">←</button>
+      <h2>Exportar Dados</h2>
+    </div>
+    <div class="scroll-body">
+      <p class="text-sm" style="color:var(--gray-500);margin-bottom:8px;">
+        Escolha o formato de exportação:
+      </p>
+      <div class="export-grid">
+        <div class="export-card" onclick="exportar('csv')">
+          <span class="export-icon">📄</span>CSV
+        </div>
+        <div class="export-card" onclick="exportar('xlsx')">
+          <span class="export-icon">📊</span>Excel (.xlsx)
+        </div>
+        <div class="export-card" onclick="exportar('pdf')" style="grid-column:1/-1;">
+          <span class="export-icon">📑</span>PDF (.pdf)
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <div class="card-title" style="margin-bottom:8px;">📦 Dados incluídos</div>
+        <p class="text-sm" style="color:var(--gray-500);line-height:1.7;">
+          Data · Hora · Responsável · Projeto · Talhão · Parcela · Latitude · Longitude · Zona UTM · Código · Observações · Número da Árvore · Espécie · CAP · DAP · HT · HC · Qualidade do Fuste · Estado Fitossanitário
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       TELA – CONFIGURAÇÕES
+       ========================================================= -->
+  <div id="screen-config" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('screen-dashboard')">←</button>
+      <h2>Configurações</h2>
+    </div>
+    <div class="scroll-body">
+      <div class="card">
+        <div class="card-title">👤 Técnico Padrão</div>
+        <div class="field-group" style="margin-top:10px;">
+          <input type="text" id="cfg-tecnico" placeholder="Nome do técnico responsável">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveCfg()">Salvar</button>
+      </div>
+      <div class="card">
+        <div class="card-title">🌐 Sincronização</div>
+        <p class="text-sm" style="margin:8px 0;color:var(--gray-500);">Servidor remoto (configuração futura)</p>
+        <div class="field-group">
+          <input type="text" id="cfg-server" placeholder="https://api.arbomap.exemplo.com">
+        </div>
+        <button class="btn btn-info btn-sm" onclick="testSync()">Testar Conexão</button>
+      </div>
+      <div class="card">
+        <div class="card-title">💾 Backup local</div>
+        <p class="text-sm" style="margin:8px 0;color:var(--gray-500);">
+          Dados salvos automaticamente no dispositivo.<br>
+          Total de coletas: <strong id="cfg-count">0</strong>
+        </p>
+        <button class="btn btn-secondary btn-sm" onclick="backupLocal()">📥 Baixar backup JSON</button>
+      </div>
+      <div class="card">
+        <div class="card-title">ℹ️ Versão</div>
+        <p class="text-sm" style="color:var(--gray-500);margin-top:6px;">Arbomap v1.0 · NEMAF/ICA/UFMG · 2025</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ============================================================
+     MODAIS
+     ============================================================ -->
+
+<!-- Confirmação -->
+<div class="modal-backdrop" id="modal-confirm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="mc-title">Confirmar</div>
+    <p class="text-sm" id="mc-msg" style="color:var(--gray-500);margin-bottom:20px;"></p>
+    <div class="row">
+      <button class="btn btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" id="mc-btn">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Scanner -->
+<div class="modal-backdrop" id="modal-qr">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔲 Leitura de QR Code</div>
+    <p class="text-sm" style="color:var(--gray-500);margin-bottom:10px;">Aponte a câmera para o QR Code:</p>
+    <div class="qr-region">
+      <video id="qr-video" autoplay playsinline></video>
+    </div>
+    <p class="text-sm" style="color:var(--gray-500);text-align:center;margin:10px 0;" id="qr-status">Iniciando câmera…</p>
+    <button class="btn btn-secondary" onclick="closeQR()">Cancelar</button>
+  </div>
+</div>
+
+<!-- Editar Árvore -->
+<div class="modal-backdrop" id="modal-edit-arvore">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Editar Árvore</div>
+    <input type="hidden" id="edit-idx">
+    <div class="field-group">
+      <label class="field-label">Espécie</label>
+      <input type="text" id="edit-especie">
+    </div>
+    <div class="row">
+      <div class="field-group">
+        <label class="field-label">CAP / DAP (cm)</label>
+        <input type="number" id="edit-cap" step="0.1">
+      </div>
+      <div class="field-group">
+        <label class="field-label">HT (m)</label>
+        <input type="number" id="edit-ht" step="0.1">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Observações</label>
+      <textarea id="edit-obs" rows="2"></textarea>
+    </div>
+    <div class="row">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-arvore')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditArvore()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ============================================================
+     JAVASCRIPT – LÓGICA COMPLETA
+     ============================================================ -->
+<script>
+/* =========================================================
+   ESTADO GLOBAL
+   ========================================================= */
+let DB = { coletas: [] }; // banco em memória / localStorage
+let coletaAtual = null;   // coleta em progresso
+let tipoAtual = '';       // 'plantada' | 'nativa'
+let instrAtual = 'suta';  // instrumento selecionado
+let fotosAtuais = [];     // base64 das fotos da árvore atual
+let qrStream = null;      // stream da câmera QR
+let qrContexto = '';      // 'parcela' | 'arvore'
+
+const CODIGOS = [
+  'N – Normal', 'M – Morta', 'Q – Quebrada', 'D – Dominada',
+  'B – Bifurcada', 'I – Inclinada', 'C – Cortada', 'P – Podada'
+];
+
+/* =========================================================
+   PERSISTÊNCIA
+   ========================================================= */
+function loadDB() {
+  try {
+    const raw = localStorage.getItem('arbomap_db');
+    if (raw) DB = JSON.parse(raw);
+  } catch(e) { console.warn('loadDB error', e); }
+}
+
+function saveDB() {
+  try {
+    localStorage.setItem('arbomap_db', JSON.stringify(DB));
+    localStorage.setItem('arbomap_backup_' + Date.now(), JSON.stringify(DB));
+    // Manter apenas os 3 backups mais recentes
+    const keys = Object.keys(localStorage)
+      .filter(k => k.startsWith('arbomap_backup_'))
+      .sort();
+    while (keys.length > 3) localStorage.removeItem(keys.shift());
+  } catch(e) { console.warn('saveDB error', e); }
+}
+
+/* =========================================================
+   NAVEGAÇÃO
+   ========================================================= */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // Atualizar dados específicos de cada tela
+  if (id === 'screen-dashboard')  renderHistorico();
+  if (id === 'screen-consultar')  renderConsulta();
+  if (id === 'screen-excluir')    renderExcluir();
+  if (id === 'screen-config')     renderConfig();
+}
+
+/* =========================================================
+   STATUS ONLINE / OFFLINE
+   ========================================================= */
+function updateStatus() {
+  const dot  = document.getElementById('dot-online');
+  const txt  = document.getElementById('status-text');
+  if (navigator.onLine) {
+    dot.className = 'status-dot online';
+    txt.textContent = 'Online';
+    txt.style.color = 'var(--green-forest)';
+  } else {
+    dot.className = 'status-dot offline';
+    txt.textContent = 'Offline';
+    txt.style.color = 'var(--danger)';
+  }
+}
+window.addEventListener('online',  updateStatus);
+window.addEventListener('offline', updateStatus);
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+function toast(msg, dur=2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+/* =========================================================
+   PAINEL / HISTÓRICO
+   ========================================================= */
+function renderHistorico() {
+  const body  = document.getElementById('historico-body');
+  const empty = document.getElementById('historico-empty');
+  const wrap  = document.getElementById('historico-wrap');
+  body.innerHTML = '';
+  if (!DB.coletas.length) {
+    wrap.style.display = 'none';
+    empty.style.display = '';
+    return;
+  }
+  wrap.style.display = '';
+  empty.style.display = 'none';
+  DB.coletas.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${c.data||'—'}</td>
+      <td>${c.hora||'—'}</td>
+      <td>${c.responsavel||'—'}</td>
+      <td>${c.projeto||'—'}</td>
+      <td>${c.talhao||'—'}</td>
+      <td>${c.parcela||'—'}</td>
+      <td><span class="badge badge-green">${(c.arvores||[]).length}</span></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+/* =========================================================
+   NOVA COLETA
+   ========================================================= */
+function startColeta(tipo) {
+  tipoAtual = tipo;
+  coletaAtual = { tipo, data:'', hora:'', responsavel:'', projeto:'',
+    talhao:'', parcela:'', lat:'', lon:'', utm:'', local:'', arvores:[], fotos:[] };
+  fotosAtuais = [];
+
+  // Pré-preencher técnico da config
+  const tec = localStorage.getItem('arbomap_tecnico') || '';
+  document.getElementById('f-responsavel').value = tec;
+
+  // Data/hora auto
+  const now = new Date();
+  document.getElementById('f-data').value = now.toISOString().split('T')[0];
+  document.getElementById('f-hora').value = now.toTimeString().slice(0,5);
+
+  // Limpar campos
+  ['f-projeto','f-talhao','f-parcela','f-lat','f-lon','f-utm','f-local'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  limparCamposArvore();
+
+  // Título
+  document.getElementById('form-title').textContent =
+    tipo === 'plantada' ? 'Coleta – Plantada' : 'Coleta – Nativa';
+
+  // Fenologia só para Nativa
+  document.getElementById('fenologia-section').style.display = tipo === 'nativa' ? '' : 'none';
+
+  // Instrumento padrão: suta
+  selectInstr('suta');
+
+  // Códigos chips
+  renderCodigos();
+
+  // Limpar lista de árvores
+  document.getElementById('arvores-body').innerHTML = '';
+  document.getElementById('arvores-empty').style.display = 'none';
+
+  // Fotos
+  document.getElementById('photo-grid').innerHTML = '';
+
+  showScreen('screen-coleta-form');
+}
+
+function limparCamposArvore() {
+  ['f-num','f-especie','f-dap1','f-dap2','f-dap-suta-result',
+   'f-cap','f-dap-calc','f-dap-outros','f-ht','f-hc','f-obs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-fuste').selectedIndex = 0;
+  document.getElementById('f-codigo').value = '';
+  document.getElementById('f-fenologia').value = '';
+  fotosAtuais = [];
+  document.getElementById('photo-grid').innerHTML = '';
+  // Deselect chips
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+}
+
+function renderCodigos() {
+  const wrap = document.getElementById('codigos-chips');
+  wrap.innerHTML = '';
+  CODIGOS.forEach(cod => {
+    const d = document.createElement('div');
+    d.className = 'chip';
+    d.textContent = cod;
+    d.onclick = () => selectChip(d, 'codigo');
+    wrap.appendChild(d);
+  });
+}
+
+/* =========================================================
+   GPS
+   ========================================================= */
+function captureGPS() {
+  if (!navigator.geolocation) { toast('GPS não disponível neste dispositivo'); return; }
+  toast('⏳ Obtendo localização…');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lon = pos.coords.longitude.toFixed(6);
+    document.getElementById('f-lat').value = lat;
+    document.getElementById('f-lon').value = lon;
+    document.getElementById('f-local').value = `${lat}, ${lon}`;
+    document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
+    document.getElementById('f-hora').value = new Date().toTimeString().slice(0,5);
+    toast('✅ Localização capturada!');
+  }, () => {
+    toast('❌ Não foi possível obter GPS. Verifique as permissões.');
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+/* =========================================================
+   INSTRUMENTO
+   ========================================================= */
+function selectInstr(tipo) {
+  instrAtual = tipo;
+  ['suta','fita','outros'].forEach(t => {
+    document.getElementById('instr-'+t).classList.toggle('selected', t === tipo);
+    document.getElementById('fields-'+t).style.display = t === tipo ? '' : 'none';
+  });
+}
+
+/* =========================================================
+   CÁLCULO DAP
+   ========================================================= */
+function calcDAP() {
+  const cap = parseFloat(document.getElementById('f-cap').value) || 0;
+  const dap = cap > 0 ? (cap / Math.PI).toFixed(2) : '';
+  document.getElementById('f-dap-calc').value = dap ? dap + ' cm' : '';
+}
+
+function calcDAPSuta() {
+  const d1 = parseFloat(document.getElementById('f-dap1').value) || 0;
+  const d2 = parseFloat(document.getElementById('f-dap2').value) || 0;
+  const med = (d1 && d2) ? ((d1 + d2) / 2).toFixed(2) : '';
+  document.getElementById('f-dap-suta-result').value = med ? med + ' cm' : '';
+}
+
+/* =========================================================
+   CHIPS (código / fenologia)
+   ========================================================= */
+function selectChip(el, campo) {
+  const parent = el.closest('.chip-group');
+  parent.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('f-' + campo).value = el.textContent;
+}
+
+/* =========================================================
+   FOTOS
+   ========================================================= */
+function openCamera() { document.getElementById('camera-input').click(); }
+function openGallery() { document.getElementById('gallery-input').click(); }
+
+function handlePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fotosAtuais.push(e.target.result);
+    renderPhotoGrid();
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = '';
+  fotosAtuais.forEach((src, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb';
+    div.innerHTML = `<img src="${src}" alt="foto"><button class="photo-del" onclick="deletePhoto(${i})">✕</button>`;
+    grid.appendChild(div);
+  });
+  // Botão adicionar
+  if (fotosAtuais.length < 6) {
+    const add = document.createElement('div');
+    add.className = 'photo-thumb';
+    add.innerHTML = '📷';
+    add.onclick = openCamera;
+    grid.appendChild(add);
+  }
+}
+
+function deletePhoto(i) {
+  fotosAtuais.splice(i, 1);
+  renderPhotoGrid();
+}
+
+/* =========================================================
+   QR CODE (câmera)
+   ========================================================= */
+function openQR(ctx) {
+  qrContexto = ctx;
+  document.getElementById('modal-qr').classList.add('open');
+  document.getElementById('qr-status').textContent = 'Iniciando câmera…';
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+      qrStream = stream;
+      const vid = document.getElementById('qr-video');
+      vid.srcObject = stream;
+      document.getElementById('qr-status').textContent = 'Aponte para o QR Code';
+      // Simular detecção após 3s (sem biblioteca externa)
+      setTimeout(() => {
+        if (qrStream) {
+          const code = prompt('📷 Simulação: Digite o código do QR Code lido:') || '';
+          if (code) handleQRResult(code);
+          closeQR();
+        }
+      }, 3000);
+    })
+    .catch(() => {
+      const code = prompt('📷 Câmera indisponível. Digite o código manualmente:') || '';
+      if (code) handleQRResult(code);
+      closeQR();
+    });
+}
+
+function handleQRResult(code) {
+  if (qrContexto === 'parcela') {
+    document.getElementById('f-parcela').value = code;
+    toast('✅ Parcela: ' + code);
+  } else {
+    document.getElementById('f-num').value = code;
+    toast('✅ Árvore: ' + code);
+  }
+}
+
+function closeQR() {
+  if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+  document.getElementById('modal-qr').classList.remove('open');
+}
+
+/* =========================================================
+   ADICIONAR ÁRVORE
+   ========================================================= */
+function getDAPValue() {
+  if (instrAtual === 'suta') {
+    const raw = document.getElementById('f-dap-suta-result').value;
+    return parseFloat(raw) || 0;
+  }
+  if (instrAtual === 'fita') {
+    const cap = parseFloat(document.getElementById('f-cap').value) || 0;
+    return cap > 0 ? parseFloat((cap / Math.PI).toFixed(2)) : 0;
+  }
+  return parseFloat(document.getElementById('f-dap-outros').value) || 0;
+}
+
+function getCAPValue() {
+  if (instrAtual === 'fita') return parseFloat(document.getElementById('f-cap').value) || 0;
+  const dap = getDAPValue();
+  return dap > 0 ? parseFloat((dap * Math.PI).toFixed(2)) : 0;
+}
+
+function adicionarArvore() {
+  const num = document.getElementById('f-num').value.trim();
+  const esp = document.getElementById('f-especie').value.trim();
+  if (!num || !esp) { toast('⚠️ Nº da árvore e espécie são obrigatórios'); return; }
+
+  const arvore = {
+    num, especie: esp,
+    fuste: document.getElementById('f-fuste').value,
+    cap: getCAPValue(),
+    dap: getDAPValue(),
+    ht: parseFloat(document.getElementById('f-ht').value) || '',
+    hc: parseFloat(document.getElementById('f-hc').value) || '',
+    codigo: document.getElementById('f-codigo').value,
+    fenologia: document.getElementById('f-fenologia').value,
+    obs: document.getElementById('f-obs').value,
+    fotos: [...fotosAtuais],
+    ts: Date.now()
+  };
+
+  if (!coletaAtual.arvores) coletaAtual.arvores = [];
+  coletaAtual.arvores.push(arvore);
+  renderArvoresTable();
+  limparCamposArvore();
+  // Auto-incrementar número
+  document.getElementById('f-num').value = (parseInt(num) + 1) || '';
+  toast('✅ Árvore #' + num + ' adicionada!');
+}
+
+function renderArvoresTable() {
+  const body  = document.getElementById('arvores-body');
+  const empty = document.getElementById('arvores-empty');
+  body.innerHTML = '';
+  const arr = coletaAtual.arvores || [];
+  if (!arr.length) { empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  arr.forEach((a, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${a.num}</strong></td>
+      <td>${a.especie}</td>
+      <td>${a.dap ? a.dap+'cm' : a.cap ? a.cap+'cm' : '—'}</td>
+      <td>${a.ht || '—'}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-secondary btn-sm" onclick="editArvore(${i})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="delArvore(${i})">🗑</button>
+        </div>
+      </td>`;
+    body.appendChild(tr);
+  });
+}
+
+function editArvore(i) {
+  const a = coletaAtual.arvores[i];
+  document.getElementById('edit-idx').value     = i;
+  document.getElementById('edit-especie').value = a.especie;
+  document.getElementById('edit-cap').value     = a.cap || a.dap || '';
+  document.getElementById('edit-ht').value      = a.ht || '';
+  document.getElementById('edit-obs').value     = a.obs || '';
+  document.getElementById('modal-edit-arvore').classList.add('open');
+}
+
+function saveEditArvore() {
+  const i = parseInt(document.getElementById('edit-idx').value);
+  const a = coletaAtual.arvores[i];
+  a.especie = document.getElementById('edit-especie').value;
+  const cap = parseFloat(document.getElementById('edit-cap').value) || 0;
+  a.cap = cap; a.dap = parseFloat((cap / Math.PI).toFixed(2));
+  a.ht  = parseFloat(document.getElementById('edit-ht').value) || '';
+  a.obs = document.getElementById('edit-obs').value;
+  renderArvoresTable();
+  closeModal('modal-edit-arvore');
+  toast('✅ Árvore atualizada');
+}
+
+function delArvore(i) {
+  openConfirm('Excluir árvore #' + coletaAtual.arvores[i].num + '?',
+    'Esta ação não pode ser desfeita.', () => {
+      coletaAtual.arvores.splice(i, 1);
+      renderArvoresTable();
+      toast('Árvore removida');
+    });
+}
+
+/* =========================================================
+   SALVAR COLETA
+   ========================================================= */
+function salvarColeta() {
+  const req = ['f-responsavel','f-projeto','f-talhao','f-parcela'];
+  for (const id of req) {
+    if (!document.getElementById(id).value.trim()) {
+      toast('⚠️ Preencha todos os campos obrigatórios');
+      return;
+    }
+  }
+  coletaAtual.tipo        = tipoAtual;
+  coletaAtual.data        = document.getElementById('f-data').value;
+  coletaAtual.hora        = document.getElementById('f-hora').value;
+  coletaAtual.responsavel = document.getElementById('f-responsavel').value;
+  coletaAtual.projeto     = document.getElementById('f-projeto').value;
+  coletaAtual.talhao      = document.getElementById('f-talhao').value;
+  coletaAtual.parcela     = document.getElementById('f-parcela').value;
+  coletaAtual.lat         = document.getElementById('f-lat').value;
+  coletaAtual.lon         = document.getElementById('f-lon').value;
+  coletaAtual.utm         = document.getElementById('f-utm').value;
+  coletaAtual.local       = document.getElementById('f-local').value;
+  coletaAtual.id          = 'C' + Date.now();
+
+  DB.coletas.push({ ...coletaAtual });
+  saveDB();
+  toast('💾 Coleta salva com sucesso!');
+  showScreen('screen-dashboard');
+}
+
+/* =========================================================
+   CONSULTAR
+   ========================================================= */
+function renderConsulta() {
+  const q    = (document.getElementById('search-input').value || '').toLowerCase();
+  const tipo = document.getElementById('filter-tipo').value;
+  const data = document.getElementById('filter-data').value;
+  const div  = document.getElementById('consulta-results');
+  div.innerHTML = '';
+
+  const results = DB.coletas.filter(c => {
+    const text = [c.responsavel,c.projeto,c.talhao,c.parcela,
+      ...(c.arvores||[]).map(a=>a.especie)].join(' ').toLowerCase();
+    return (!q || text.includes(q))
+      && (!tipo || c.tipo === tipo)
+      && (!data || c.data === data);
+  });
+
+  if (!results.length) {
+    div.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><h3>Nenhum resultado</h3><p>Tente outros filtros</p></div>';
+    return;
+  }
+  results.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-title">${c.projeto||'—'} · ${c.talhao||'—'} · P${c.parcela||'—'}</div>
+          <div class="text-sm" style="color:var(--gray-500)">${c.data||''} ${c.hora||''} · ${c.responsavel||''}</div>
+        </div>
+        <span class="badge badge-${c.tipo==='plantada'?'blue':'green'}">${c.tipo}</span>
+      </div>
+      <div class="text-sm" style="color:var(--gray-500);margin-bottom:10px;">
+        ${(c.arvores||[]).length} árvore(s) registrada(s)
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-secondary btn-sm" onclick="verDetalhe('${c.id}')">👁 Ver</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirColeta('${c.id}')">🗑</button>
+      </div>`;
+    div.appendChild(card);
+  });
+}
+
+function verDetalhe(id) {
+  const c = DB.coletas.find(x => x.id === id);
+  if (!c) return;
+  const body = document.getElementById('detalhe-body');
+  // Mapa placeholder
+  const mapHTML = c.lat ? `
+    <div class="map-ph" onclick="openMap(${c.lat},${c.lon})">
+      <span>🗺</span>
+      <div>${c.lat}, ${c.lon}</div>
+      <div style="font-size:11px;color:var(--green-mid)">Toque para abrir no mapa</div>
+    </div>` : '';
+
+  body.innerHTML = `
+    <div style="padding:16px;">
+      <div class="section-title">📋 Dados da Coleta</div>
+      <div class="card">
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          ${[['Tipo',c.tipo],['Data',c.data],['Hora',c.hora],
+             ['Responsável',c.responsavel],['Projeto',c.projeto],
+             ['Talhão',c.talhao],['Parcela',c.parcela],
+             ['Lat',c.lat],['Lon',c.lon],['UTM',c.utm]].map(([k,v])=>
+            `<tr><td style="padding:5px 0;color:var(--gray-500);width:40%">${k}</td><td><strong>${v||'—'}</strong></td></tr>`).join('')}
+        </table>
+      </div>
+      ${mapHTML}
+      <div class="section-title">🌳 Árvores</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Espécie</th><th>CAP</th><th>DAP</th><th>HT</th><th>Código</th></tr></thead>
+          <tbody>
+            ${(c.arvores||[]).map(a=>`<tr>
+              <td>${a.num}</td><td>${a.especie}</td>
+              <td>${a.cap||'—'}</td><td>${a.dap||'—'}</td>
+              <td>${a.ht||'—'}</td><td>${a.codigo||'—'}</td>
+            </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray-500)">Sem árvores</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  showScreen('screen-detalhe');
+}
+
+function openMap(lat, lon) {
+  window.open(`https://www.google.com/maps?q=${lat},${lon}`, '_blank');
+}
+
+/* =========================================================
+   EXCLUIR
+   ========================================================= */
+function renderExcluir() {
+  const lista = document.getElementById('excluir-lista');
+  lista.innerHTML = '';
+  if (!DB.coletas.length) {
+    lista.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><h3>Nenhum registro</h3></div>';
+    return;
+  }
+  DB.coletas.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.marginBottom = '8px';
+    div.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-title">${c.projeto} · ${c.talhao} · P${c.parcela}</div>
+          <div class="text-sm" style="color:var(--gray-500)">${c.data} · ${(c.arvores||[]).length} árvore(s)</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="excluirColeta('${c.id}')">🗑</button>
+      </div>`;
+    lista.appendChild(div);
+  });
+}
+
+function excluirColeta(id) {
+  const c = DB.coletas.find(x => x.id === id);
+  openConfirm(`Excluir coleta "${c?.projeto}"?`, 'Todas as árvores e fotos serão removidas.', () => {
+    DB.coletas = DB.coletas.filter(x => x.id !== id);
+    saveDB();
+    renderExcluir();
+    renderConsulta();
+    renderHistorico();
+    toast('Coleta excluída');
+  });
+}
+
+function excluirTudo() {
+  openConfirm('Excluir TODOS os registros?',
+    '⚠️ Esta ação é irreversível. Todos os dados serão perdidos.', () => {
+      DB.coletas = [];
+      saveDB();
+      renderExcluir();
+      renderHistorico();
+      toast('Todos os dados foram excluídos');
+    });
+}
+
+/* =========================================================
+   EXPORTAR
+   ========================================================= */
+function exportar(formato) {
+  if (!DB.coletas.length) { toast('⚠️ Nenhum dado para exportar'); return; }
+
+  if (formato === 'csv') exportCSV();
+  else if (formato === 'xlsx') exportXLSX();
+  else if (formato === 'pdf') exportPDF();
+}
+
+function buildRows() {
+  const rows = [];
+  DB.coletas.forEach(c => {
+    (c.arvores||[]).forEach(a => {
+      rows.push([
+        c.data, c.hora, c.responsavel, c.projeto, c.talhao, c.parcela,
+        c.lat, c.lon, c.utm, c.tipo,
+        a.num, a.especie, a.cap, a.dap, a.ht, a.hc||'',
+        a.fuste, a.codigo, a.fenologia||'', a.obs
+      ]);
+    });
+  });
+  return rows;
+}
+
+const HEADERS = [
+  'Data','Hora','Responsável','Projeto','Talhão','Parcela',
+  'Latitude','Longitude','Zona UTM','Tipo',
+  'Nº Árvore','Espécie','CAP','DAP','HT','HC',
+  'Fuste','Código','Fenologia','Observações'
+];
+
+function exportCSV() {
+  const rows = [HEADERS, ...buildRows()];
+  const csv  = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  download('arbomap_export.csv', 'text/csv', csv);
+  toast('✅ CSV exportado!');
+}
+
+function exportXLSX() {
+  // XLSX simples via HTML table → Blob (compatível sem biblioteca)
+  const rows = [HEADERS, ...buildRows()];
+  let html = '<table><thead><tr>' + HEADERS.map(h=>`<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+  rows.slice(1).forEach(r => {
+    html += '<tr>' + r.map(c=>`<td>${c}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+
+  const tpl = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:x="urn:schemas-microsoft-com:office:excel"
+    xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="UTF-8">
+    <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>
+    <x:ExcelWorksheet><x:Name>Arbomap</x:Name>
+    <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+    </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+    </head><body>${html}</body></html>`;
+
+  download('arbomap_export.xls', 'application/vnd.ms-excel', tpl);
+  toast('✅ Excel exportado!');
+}
+
+function exportPDF() {
+  const rows = buildRows();
+  const win  = window.open('', '_blank');
+  let html = `<html><head><meta charset="UTF-8"><title>Arbomap – Exportação</title>
+    <style>
+      body{font-family:Arial,sans-serif;font-size:11px;padding:20px;}
+      h1{color:#166534;font-size:18px;} h2{color:#166534;font-size:13px;margin-top:16px;}
+      table{border-collapse:collapse;width:100%;margin-top:8px;}
+      th{background:#166534;color:white;padding:6px 8px;text-align:left;font-size:10px;}
+      td{padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:10px;}
+      tr:nth-child(even) td{background:#f0fdf4;}
+      .info{color:#6b7280;font-size:10px;margin-bottom:12px;}
+    </style></head><body>
+    <h1>🌳 Arbomap – Relatório de Inventário</h1>
+    <p class="info">Gerado em ${new Date().toLocaleString('pt-BR')} · NEMAF/ICA/UFMG</p>
+    <table><thead><tr>${HEADERS.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map(r=>`<tr>${r.map(c=>`<td>${c??''}</td>`).join('')}</tr>`).join('')}
+    </tbody></table>
+    <script>window.onload=()=>window.print();<\/script>
+    </body></html>`;
+  win.document.write(html);
+  win.document.close();
+  toast('✅ PDF aberto para impressão');
+}
+
+function download(name, type, content) {
+  const blob = new Blob([content], { type });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* =========================================================
+   CONFIGURAÇÕES
+   ========================================================= */
+function renderConfig() {
+  const tec = localStorage.getItem('arbomap_tecnico') || '';
+  document.getElementById('cfg-tecnico').value = tec;
+  document.getElementById('cfg-count').textContent = DB.coletas.length;
+}
+
+function saveCfg() {
+  const tec = document.getElementById('cfg-tecnico').value.trim();
+  localStorage.setItem('arbomap_tecnico', tec);
+  toast('✅ Configurações salvas');
+}
+
+function testSync() {
+  toast('🔄 Verificando conexão…');
+  setTimeout(() => {
+    if (navigator.onLine) toast('✅ Servidor acessível (modo futuro)');
+    else toast('❌ Sem conexão com a internet');
+  }, 1500);
+}
+
+function backupLocal() {
+  download('arbomap_backup_' + Date.now() + '.json',
+    'application/json', JSON.stringify(DB, null, 2));
+  toast('✅ Backup baixado!');
+}
+
+/* =========================================================
+   MODAL GENÉRICO
+   ========================================================= */
+function openConfirm(title, msg, cb) {
+  document.getElementById('mc-title').textContent = title;
+  document.getElementById('mc-msg').textContent   = msg;
+  const btn = document.getElementById('mc-btn');
+  btn.onclick = () => { cb(); closeModal('modal-confirm'); };
+  document.getElementById('modal-confirm').classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Fechar modal clicando no backdrop
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+  b.addEventListener('click', e => {
+    if (e.target === b) closeModal(b.id);
+  });
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+loadDB();
+updateStatus();
+
+// Auto-backup periódico (a cada 5 min)
+setInterval(() => { if (DB.coletas.length) saveDB(); }, 5 * 60 * 1000);
+
+// PWA Service Worker (inline, para funcionar offline)
+if ('serviceWorker' in navigator) {
+  const swBlob = new Blob([`
+    const CACHE = 'arbomap-v1';
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './arbomap.html'])));
+      self.skipWaiting();
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    });
+  `], { type: 'application/javascript' });
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL).catch(() => {});
+}
+</script>
+</body>
+</html>
